@@ -1,0 +1,14 @@
+__pycache__/
+.env
+uploads/
+*.pyc
+
+document_scanner.db
+extracted_text.txt
+original_ocr.txt
+processed_ocr.txt
+processed.png
+scanned.png
+scanned_document.png
+test_processed.png
+

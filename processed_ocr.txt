@@ -1,0 +1,12 @@
+DOCUMENT SCANNER TEST
+
+Name: Sravani
+
+Project: Al Document Scanner
+
+Optical Character Recognition
+
+This document is used to test
+
+boundary detection and scanning.
+
