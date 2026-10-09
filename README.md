@@ -1,53 +1,34 @@
-# AI Document Scanner and Smart Text Extractor
+# AI Document Scanner
 
-An AI-powered document scanning application that detects document boundaries, corrects perspective, extracts text using Optical Character Recognition (OCR), and identifies important information such as email addresses, phone numbers, and dates.
+An AI-powered document scanning application built with FastAPI, OpenCV, Pillow, and Tesseract OCR. Upload supported documents, extract text, and identify useful information such as email addresses, phone numbers, and dates.
 
 ## Features
 
-- Upload document images.
-- Detect document boundaries and correct perspective using OpenCV.
-- Extract text using Tesseract OCR.
+- Upload and process supported document formats.
+- Extract text using OCR for images.
 - Preprocess images to improve text recognition.
-- Automatically identify email addresses, phone numbers, and dates.
-- Save scan results and view scan history using SQLite.
-- Download extracted text.
-- Simple web interface built with FastAPI.
+- Extract emails, phone numbers, and dates.
+- Identify document types using smart classification.
+- View and download extracted text.
+- Store scan information locally using SQLite, if enabled in the application.
 
-## Technologies Used
+## Technology Stack
 
-- **Language:** Python
-- **Backend:** FastAPI
-- **Image Processing:** OpenCV, NumPy, Pillow
+- **Backend:** Python, FastAPI
+- **Image processing:** OpenCV, Pillow, NumPy
 - **OCR:** Tesseract OCR, pytesseract
+- **Document processing:** PyMuPDF, python-docx, openpyxl, xlrd
 - **Database:** SQLite
-- **Frontend:** HTML, CSS, JavaScript
-- **Development Tool:** Visual Studio Code
-
-## Project Structure
-
-```text
-ai-document-scanner/
-├── app.py
-├── database.py
-├── document_scanner.py
-├── preprocessing.py
-├── smart_extraction.py
-├── ocr_test.py
-├── compare_ocr.py
-├── document_photo.jpg
-├── requirements.txt
-├── README.md
-└── .gitignore
-```
+- **Testing:** pytest
 
 ## Requirements
 
 - Python 3.10 or newer
-- Tesseract OCR
+- Tesseract OCR installed on your system
 - Git
 - Visual Studio Code (recommended)
 
-## Installation and Setup
+## Installation
 
 ### 1. Clone the repository
 
@@ -62,59 +43,79 @@ cd ai-document-scanner
 python -m venv .venv
 ```
 
-Activate it on Windows PowerShell:
+Activate it in Windows PowerShell:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
 ```
 
-### 3. Install Python dependencies
+### 3. Install dependencies
 
-```bash
+```powershell
 python -m pip install -r requirements.txt
 ```
 
 ### 4. Install Tesseract OCR
 
-Install Tesseract OCR on your computer. On Windows, the executable is commonly located at:
+Install the Tesseract OCR engine separately. On Windows, the executable is commonly located at:
 
 ```text
 C:\Program Files\Tesseract-OCR\tesseract.exe
 ```
 
-Make sure the path configured in your Python application matches your installation.
+If Tesseract is not on your system PATH, configure its executable location in the application.
 
-### 5. Run the application
+Verify the installation:
 
-```bash
+```powershell
+python -c "import pytesseract; print(pytesseract.get_tesseract_version())"
+```
+
+### 5. Start the application
+
+```powershell
 python -m uvicorn app:app --reload
 ```
 
-Open the following URL in your browser:
-
-http://127.0.0.1:8000
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000) in your browser.
 
 ## How to Use
 
 1. Start the application.
-2. Upload a document image.
-3. Scan the document and extract its text.
-4. Review the extracted information.
-5. Download the extracted text.
-6. Visit `/history` to view previously saved scans.
+2. Open the local website.
+3. Upload a supported document.
+4. Start scanning and wait for processing to finish.
+5. Review the extracted text and detected information.
+6. Copy or download the results if the corresponding controls are available.
 
-## Database
+## Run Automated Tests
 
-The application uses SQLite to store scan history, extracted text, and detected information. The database file is created locally when the application initializes.
+Run the test suite with:
+
+```powershell
+python -m pytest -v
+```
+
+The current test suite checks the homepage, health endpoint, unsupported file types, download behavior, missing files, and image uploads.
+
+## Database and Privacy
+
+The application may use a local SQLite database for scan-related information. Do not commit databases containing personal or confidential documents to GitHub.
+
+## Limitations
+
+- OCR accuracy depends on image quality, orientation, language, and document layout.
+- Tesseract OCR must be installed separately from the Python dependencies.
+- Supported file formats and application features depend on the current implementation.
+- This project should undergo additional security testing before being exposed to public users.
 
 ## Future Enhancements
 
-- Support PDF documents.
-- Improve OCR accuracy for different languages.
-- Add user authentication and access control.
-- Export extracted information to PDF or Excel.
-- Deploy the application online.
-- Develop a mobile-friendly or installable app interface.
+- Improve OCR accuracy and multilingual support.
+- Add authentication and access controls.
+- Expand export options.
+- Improve document classification and extraction.
+- Deploy the application with appropriate upload limits and security protections.
 
 ## Author
 
@@ -124,4 +125,4 @@ GitHub: https://github.com/sravanibandreddy
 
 ## License
 
-This project is available for educational and portfolio purposes. Add an open-source license if you wish to formally permit reuse and redistribution.
+This project is intended for educational and portfolio use. No formal open-source license is specified yet.
