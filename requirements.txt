@@ -6,3 +6,10 @@ opencv-python
 numpy
 Pillow
 pytesseract
+PyMuPDF
+openpyxl
+xlrd
+python-docx
+pytest
+httpx
+httpx2
