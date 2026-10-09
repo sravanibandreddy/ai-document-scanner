@@ -5,114 +5,86 @@ import numpy as np
 
 def order_points(points):
     points = np.asarray(points, dtype="float32")
-    result = np.zeros((4, 2), dtype="float32")
+    ordered = np.zeros((4, 2), dtype="float32")
 
     sums = points.sum(axis=1)
-    diffs = np.diff(points, axis=1).reshape(-1)
+    differences = np.diff(points, axis=1).reshape(-1)
 
-    result[0] = points[np.argmin(sums)]   # Top-left
-    result[1] = points[np.argmin(diffs)]  # Top-right
-    result[2] = points[np.argmax(sums)]   # Bottom-right
-    result[3] = points[np.argmax(diffs)]  # Bottom-left
+    ordered[0] = points[np.argmin(sums)]       # top-left
+    ordered[2] = points[np.argmax(sums)]       # bottom-right
+    ordered[1] = points[np.argmin(differences)]  # top-right
+    ordered[3] = points[np.argmax(differences)]  # bottom-left
 
-    return result
+    return ordered
 
 
 def scan_document(image):
-    if image is None:
-        raise ValueError("Input image is empty.")
+    if image is None or image.size == 0:
+        return image
 
-    original = image.copy()
     height, width = image.shape[:2]
+    scale = min(1.0, 900 / max(height, width))
 
-    # Resize only for detection
-    scale = min(700 / max(height, width), 1.0)
-    resized = cv2.resize(
-        image,
-        (int(width * scale), int(height * scale))
-    )
+    if scale < 1:
+        working = cv2.resize(
+            image, None, fx=scale, fy=scale,
+            interpolation=cv2.INTER_AREA
+        )
+    else:
+        working = image.copy()
 
-    gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(working, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     edges = cv2.Canny(blurred, 50, 150)
 
     contours, _ = cv2.findContours(
-        edges,
-        cv2.RETR_EXTERNAL,
-        cv2.CHAIN_APPROX_SIMPLE
+        edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE
     )
+    contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
-    contours = sorted(
-        contours,
-        key=cv2.contourArea,
-        reverse=True
-    )
+    image_area = working.shape[0] * working.shape[1]
 
-    detected = None
-    image_area = resized.shape[0] * resized.shape[1]
-
-    for contour in contours[:10]:
-        area = cv2.contourArea(contour)
-
-        # Ignore very small contours and near-full-image borders
-        if area < image_area * 0.10:
-            continue
-        if area > image_area * 0.95:
-            continue
-
+    for contour in contours[:30]:
         perimeter = cv2.arcLength(contour, True)
-        approx = cv2.approxPolyDP(
+        approximation = cv2.approxPolyDP(
             contour, 0.02 * perimeter, True
         )
 
-        if len(approx) == 4:
-            detected = approx.reshape(4, 2)
-            break
+        if len(approximation) != 4:
+            continue
 
-    if detected is None:
-        print("No reliable document boundary found; using original image.")
-        return original
+        if cv2.contourArea(approximation) < image_area * 0.12:
+            continue
 
-    # Map detected points to the original image
-    rect = order_points(detected / scale)
-    tl, tr, br, bl = rect
+        points = approximation.reshape(4, 2).astype("float32")
+        points /= scale
+        rect = order_points(points)
 
-    out_width = int(max(
-        np.linalg.norm(br - bl),
-        np.linalg.norm(tr - tl)
-    ))
-    out_height = int(max(
-        np.linalg.norm(tr - br),
-        np.linalg.norm(tl - bl)
-    ))
+        top_left, top_right, bottom_right, bottom_left = rect
 
-    if out_width < 50 or out_height < 50:
-        return original
+        width_a = np.linalg.norm(bottom_right - bottom_left)
+        width_b = np.linalg.norm(top_right - top_left)
+        height_a = np.linalg.norm(top_right - bottom_right)
+        height_b = np.linalg.norm(top_left - bottom_left)
 
-    destination = np.array([
-        [0, 0],
-        [out_width - 1, 0],
-        [out_width - 1, out_height - 1],
-        [0, out_height - 1]
-    ], dtype="float32")
+        output_width = int(max(width_a, width_b))
+        output_height = int(max(height_a, height_b))
 
-    matrix = cv2.getPerspectiveTransform(rect, destination)
+        if output_width < 2 or output_height < 2:
+            continue
 
-    corrected = cv2.warpPerspective(
-        original,
-        matrix,
-        (out_width, out_height)
-    )
+        destination = np.array([
+            [0, 0],
+            [output_width - 1, 0],
+            [output_width - 1, output_height - 1],
+            [0, output_height - 1]
+        ], dtype="float32")
 
-    return corrected
+        transform = cv2.getPerspectiveTransform(rect, destination)
 
+        corrected = cv2.warpPerspective(
+            image, transform, (output_width, output_height)
+        )
+        return corrected
 
-if __name__ == "__main__":
-    image = cv2.imread("document_photo.jpg")
-
-    if image is None:
-        print("Test image document_photo.jpg was not found.")
-    else:
-        scanned = scan_document(image)
-        cv2.imwrite("scanned_document.png", scanned)
-        print("Saved scanned_document.png")
+    return image

@@ -1,118 +1,77 @@
 
-import sqlite3
-import json
 from pathlib import Path
+import json
+import sqlite3
 
-
-# Store the database in the project folder
-BASE_DIR = Path(__file__).resolve().parent
-DATABASE_FILE = BASE_DIR / "document_scanner.db"
+DB_PATH = Path(__file__).resolve().parent / "scans.db"
 
 
 def get_connection():
-    """Create a connection to the SQLite database."""
-    connection = sqlite3.connect(DATABASE_FILE)
+    connection = sqlite3.connect(DB_PATH)
     connection.row_factory = sqlite3.Row
     return connection
 
 
 def init_db():
-    """Create the scans table if it does not exist."""
-    connection = get_connection()
-
-    try:
+    with get_connection() as connection:
         connection.execute("""
             CREATE TABLE IF NOT EXISTS scans (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 filename TEXT NOT NULL,
                 extracted_text TEXT NOT NULL,
-                emails TEXT,
-                phone_numbers TEXT,
-                dates TEXT,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                information TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
 
-        connection.commit()
-
-    finally:
-        connection.close()
-
 
 def save_scan(filename, extracted_text, information):
-    """Save a completed scan and its extracted information."""
-    emails = information.get("emails", [])
-    phone_numbers = information.get("phone_numbers", [])
-    dates = information.get("dates", [])
-
-    connection = get_connection()
-
-    try:
-        cursor = connection.execute("""
-            INSERT INTO scans (
+    with get_connection() as connection:
+        cursor = connection.execute(
+            """
+            INSERT INTO scans (filename, extracted_text, information)
+            VALUES (?, ?, ?)
+            """,
+            (
                 filename,
                 extracted_text,
-                emails,
-                phone_numbers,
-                dates
+                json.dumps(information, ensure_ascii=False)
             )
-            VALUES (?, ?, ?, ?, ?)
-        """, (
-            filename,
-            extracted_text,
-            json.dumps(emails),
-            json.dumps(phone_numbers),
-            json.dumps(dates)
-        ))
-
-        connection.commit()
+        )
         return cursor.lastrowid
-
-    finally:
-        connection.close()
 
 
 def get_all_scans():
-    """Return scan history, newest first."""
-    connection = get_connection()
-
-    try:
-        rows = connection.execute("""
-            SELECT id, filename, created_at
+    with get_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT id, filename, extracted_text, information, created_at
             FROM scans
             ORDER BY id DESC
-        """).fetchall()
+            """
+        ).fetchall()
 
-        return [dict(row) for row in rows]
-
-    finally:
-        connection.close()
+    return [dict(row) for row in rows]
 
 
 def get_scan_by_id(scan_id):
-    """Return one saved scan, or None if it does not exist."""
-    connection = get_connection()
-
-    try:
-        row = connection.execute("""
-            SELECT *
+    with get_connection() as connection:
+        row = connection.execute(
+            """
+            SELECT id, filename, extracted_text, information, created_at
             FROM scans
             WHERE id = ?
-        """, (scan_id,)).fetchone()
+            """,
+            (scan_id,)
+        ).fetchone()
 
-        if row is None:
-            return None
+    if row is None:
+        return None
 
-        result = dict(row)
+    result = dict(row)
+    try:
+        result["information"] = json.loads(result["information"])
+    except (json.JSONDecodeError, TypeError):
+        result["information"] = {}
 
-        # Convert the saved JSON strings back to Python lists
-        for field in ("emails", "phone_numbers", "dates"):
-            try:
-                result[field] = json.loads(result[field] or "[]")
-            except (json.JSONDecodeError, TypeError):
-                result[field] = []
-
-        return result
-
-    finally:
-        connection.close()
+    return result

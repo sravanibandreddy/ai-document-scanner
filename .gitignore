@@ -1,9 +1,17 @@
-__pycache__/
-.env
-uploads/
-*.pyc
 
-document_scanner.db
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Secrets and environment variables
+.env
+.env.*
+
+# Private uploads and generated files
+uploads/
+*.db
 extracted_text.txt
 original_ocr.txt
 processed_ocr.txt
@@ -12,3 +20,9 @@ scanned.png
 scanned_document.png
 test_processed.png
 
+# Testing and logs
+.pytest_cache/
+*.log
+app_backup.py
+static/app_backup.js
+static/style_backup.css
