@@ -1,0 +1,14 @@
+.git/
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.db
+*.sqlite
+*.sqlite3
+.env
+.env.*
+uploads/
+app_backup.py
+static/app_backup.js
+static/style_backup.css
